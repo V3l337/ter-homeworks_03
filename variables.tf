@@ -1,8 +1,8 @@
 ###cloud vars
-variable "token" {
-  type        = string
-  description = "OAuth-token; https://cloud.yandex.ru/docs/iam/concepts/authorization/oauth-token"
-}
+# variable "token" {
+#   type        = string
+#   description = "OAuth-token; https://cloud.yandex.ru/docs/iam/concepts/authorization/oauth-token"
+# }
 
 variable "cloud_id" {
   type        = string
@@ -29,4 +29,31 @@ variable "vpc_name" {
   type        = string
   default     = "develop"
   description = "VPC network&subnet name"
+}
+
+variable "IMG_family" {
+  type        = string
+  default     = "fd82aveluqj5jnfumtsj"
+  description = "images family debian 11 YndexCloud"
+}
+
+variable "each_VM" {
+  type = list(object({
+    vm_name       = string
+    cpu           = number
+    ram           = number
+    core_fraction = number
+    disk_volume   = number
+  }))
+  default = [
+    { vm_name = "main",   cpu = 4, ram = 8,  core_fraction = 5, disk_volume = 50 },
+    { vm_name = "replica", cpu = 2, ram = 4, core_fraction = 20,  disk_volume = 20 }
+  ]
+}
+
+variable "vms_metadata" {
+  type = map(object({
+    serial_port_enable = number
+    ssh_keys           = string
+  }))
 }
