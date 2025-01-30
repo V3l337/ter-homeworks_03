@@ -17,7 +17,8 @@
 
 4. **Скриншот входящих правил группы безопасности**  
    - После успешного создания ресурсов сделал скриншот правил входящего трафика в Yandex Cloud.  
-   - Файл добавлен в репозиторий как `security_group_rules.png`.
+   - Файл добавлен в репозиторий как `входящих правил «Группы безопасности» .png`.
+     
 ![Группы безопасности](https://github.com/V3l337/ter-homeworks_03/blob/master/входящих%20правил%20«Группы%20безопасности»%20.png)
 
 ### Задание 2
@@ -73,16 +74,19 @@
 - Локальная переменная для ключа:
 
   ```hcl
-  locals {
-    ssh_key = file("~/.ssh/id_rsa.pub")
+  vms_metadata = {
+  common = {
+    serial_port_enable = 1
+    ssh_keys           = "v3ll:ssh-ed25519 AAAAC3NzaC1l....er"
   }
   ```
 
 - Добавлен в `metadata`:
 
   ```hcl
-  metadata = {
-    ssh-keys = "ubuntu:${local.ssh_key}"
+   metadata = {
+    serial-port-enable = var.vms_metadata["common"].serial_port_enable
+    ssh-keys           = var.vms_metadata["common"].ssh_keys
   }
   ```
 
@@ -98,10 +102,11 @@ terraform apply
 - Файл `disk_vm.tf` содержит:
   
   ```hcl
-  resource "yandex_compute_disk" "storage_disk" {
-    count = 3
-    name  = "storage-disk-${count.index + 1}"
-    size  = 1
+  resource "yandex_compute_disk" "disks" {
+     count = 3
+     name  = "disk-${count.index + 1}"
+     zone = var.default_zone
+     size = 1
     # остальные параметры
   }
   ```
@@ -110,15 +115,15 @@ terraform apply
 - Использован `dynamic`:
 
   ```hcl
-  resource "yandex_compute_instance" "storage" {
+  resource "yandex_compute_instance" "oneVM" {
     name = "storage"
     # основные параметры
 
     dynamic "secondary_disk" {
-      for_each = yandex_compute_disk.storage_disk
-      content {
-        disk_id = secondary_disk.value.id
-      }
+    for_each = toset([for disk in yandex_compute_disk.disks : disk.id])
+    content {
+      disk_id = secondary_disk.value
+      mode    = "READ_WRITE"
     }
   }
   ```
@@ -129,18 +134,22 @@ terraform apply
 - Файл `ansible.tf` генерирует inventory-файл:
 
   ```hcl
-  data "template_file" "inventory" {
-    template = file("${path.module}/inventory.tpl")
-    vars = {
-      webservers = yandex_compute_instance.web
-      databases  = yandex_compute_instance.db
-      storage    = yandex_compute_instance.storage
-    }
-  }
-
   resource "local_file" "ansible_inventory" {
-    content  = data.template_file.inventory.rendered
-    filename = "${path.module}/ansible_inventory.ini"
+  filename = "${abspath(path.module)}/ansible_inventory.ini"
+  content = templatefile("${path.module}/inventory.tpl", {
+    web_vms = [for vm in yandex_compute_instance.VM : {
+      name              = vm.name,
+      network_interface = vm.network_interface
+    }],
+    db_vms = [for _, db in yandex_compute_instance.db : {
+      name              = db.name,
+      network_interface = db.network_interface
+    }],
+    storage_vms = {
+      name              = yandex_compute_instance.oneVM.name,
+      network_interface = yandex_compute_instance.oneVM.network_interface
+    }
+  })
   }
   ```
 
@@ -151,7 +160,7 @@ terraform apply
 ```
 
 #### 3. Скриншот файла инвентаря
-- Сделан скриншот получившегося файла `ansible_inventory.ini`.
+- Сделан скриншот получившегося файла - я добавил файл `ansible_inventory.ini`.
 - Файл загружен в репозиторий.
 
 ## Завершение
