@@ -166,4 +166,4 @@ terraform apply
 ## Завершение
 
 - Вся работа закоммичена в ветку `terraform-03`.
-- [Ссылка на коммит](https://github.com/V3l337/ter-homeworks_03).
+- [Ссылка на коммит](https://github.com/V3l337/ter-homeworks_03/commit/9917a0a5d11b30a79eafb05f9c0b580c2cacd500).
